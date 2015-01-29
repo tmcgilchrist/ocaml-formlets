@@ -1,0 +1,45 @@
+What's this?
+------------
+A preprocessor providing 
+   * Links-style XML syntax
+   * Formlets syntax
+
+Most of the work is in the lexer.  Unfortunately, since the Camlpl4
+lexer isn't extensible in the right way (there isn't a way to hook in
+a lexer switch on a certain character) we have to copy the whole thing
+and modify it slightly.  We use a stack of lexing functions to
+maintain state in the same manner as the Links lexer implementation.
+
+The parser is comparatively simple: preprocess all of the XML
+literals, handing off to the regular camlp4 parser to parse OCaml
+expressions.
+
+Why don't we just use the preprocessor provided by Ocsigen?
+-----------------------------------------------------------
+
+It would be fairly easy to modify xmlp4, the Ocsigen preprocessor, to
+include formlets syntax.  We choose not to follow this route for at
+least the following reasons:
+
+  1. the syntax is rather heavy, since it uses camlp4 quotation at the
+     expression level.  To declare an empty <p/> node, for example,
+     you have to write
+
+        << <p/> >>
+
+  2. nesting is broken.  As in camlp4, "$" is the splicing character,
+     and the lexer uses a crude scanahead to find the closing "$",
+     which ignores all grammatical and lexical structure.  Thus, one
+     may write
+
+        << <p>$str:"x"$</p> >>
+
+     to splice in the string "x", or 
+
+        let dollar = "$" in
+        << <p>$str:dollar$</p> >>
+
+     to splice in the string "$", but not
+
+        << <p>$str:"$"$</p> >>
+

@@ -1,0 +1,110 @@
+This is the code accompanying the paper
+
+   "The Essence of Form Abstraction"
+   http://groups.inf.ed.ac.uk/links/formlets/
+
+There are three directories:
+
+   lib/
+     Contains variations of the formlets library.
+
+        formlets.ml[i] is the standard formlets library described in the
+        body of the paper.
+         
+        formlets_typed.ml[i] is the combination of formlets and Elsman
+        and Larsen's MiniXHTML described in Section 6.1
+
+        formlets_contexts.ml[i] is the variation of formlets based on
+        statically typed multi-holed contexts described in Section 6.3.
+
+        There are various other files with basic definitions and
+        auxiliary functionality.
+
+        The three systems are built as a single library.
+
+   pp/
+     Contains a preprocessor that implements the special formlet
+     syntax described in the paper.
+
+        desugar.ml implements the desugaring translation given in
+        Figure 7.
+
+        desugar_typed.ml implements a variation of the desugaring
+        translation that targets typed XHTML.
+
+        desugar_contexts.ml implements the variation of the desugaring
+        translation (sketched in Section 6.3) that targets multi-holed
+        contexts.
+
+        lexer.mll is a customized version of the OCaml lexer that can
+        handle XML literals with embedded expressions (which, in turn,
+        may also contain XML literals, and so on).
+
+        parser.ml extends the OCaml using Camlp4 to include formlet
+        expressions.
+
+        The various desugarers can be selected using a minor variation
+        of the syntax given in the paper: the optional name following
+        the word "formlet" indicates which desugarer should be used.
+        For example,
+
+           formlet typed
+              <p>{i => e}</p>
+           yields f e
+
+        denotes a formlet expression that should be translated using
+        the "typed" desugarer.  The three desugarers are available
+        under the names "standard", "typed" and "contexts".
+
+   examples/
+     Contains various example programs that use the formlets syntax
+     and library.
+
+        input_int/ is a simple formlet that reads and returns an
+        integer value
+
+        date/ gives the full example developed in the paper
+
+        contexts/ gives the date example again, desugaring to
+        multi-holed contexts.
+
+        lists/ shows how to use formlets to construct forms with a
+        variable number of fields.
+
+        pure_apply/ shows how to implement the idiomatic pure and
+        apply operators in the formlet syntax for each of the three
+        formlet libraries.
+
+        typed/ gives an example of desugaring to typed XHTML
+
+
+Compilation and installation.
+-----------------------------
+
+This code has been developed and tested with OCaml 3.10.2.
+
+Typing
+
+    make
+
+
+in the top-level directory builds the library, the preprocessor and
+the examples.
+
+The `date' and `contexts' examples are runnable programs.  Copy the
+programs examples/date/program and examples/contexts/program to
+locations where they may be run as CGI files, for example:
+
+    cp examples/date/program /home/me/public_html/cgi-bin/date.cgi
+
+Please note that this is a prototype implementation only and should
+not be used on a production or public system.
+
+The output of the various translations can be viewed using the
+commands following `pp' in the comments at the top of each example
+program.  For example, to see the result of the desugaring translation
+on the input_int example, run 
+
+   /usr/local/ocaml/bin/camlp4of -I ../../pp desugar.cmo desugar_typed.cmo desugar_contexts.cmo lexer.cmo parser.cmo syntax.cmo input_int.ml
+
+in the examples/input_int directory.

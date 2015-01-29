@@ -1,0 +1,15 @@
+OCAMLMAKEFILE := ../../lib/OCamlMakefile
+
+INCDIRS       := ../../lib
+
+USE_CAMLP4    := yes
+
+SOURCES       := $(wildcard *.ml)
+
+LIBDIRS       := ../../lib
+
+LIBS          := str formlets
+
+RESULT        := program
+
+include $(OCAMLMAKEFILE)
