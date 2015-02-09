@@ -15,10 +15,10 @@
 (* Authors:
  * - Daniel de Rauglaudre: initial version
  * - Nicolas Pouillard: refactoring
- * - Jeremy Yallop: added lexical syntax for XML (modified 3.10.2) 
+ * - Jeremy Yallop: added lexical syntax for XML (modified 3.10.2)
 *)
 
-(* 
+(*
 
    OCaml expressions extended with XML and formlet literals do not
    form a regular grammar, so we can't use normal lexing strategies
@@ -160,7 +160,7 @@ module Make (Token : Sig.Camlp4Token)
       (ctxt : context) : unit =
     let _ = Stack.pop ctxt.lexers in ()
 
-  let next_lexer 
+  let next_lexer
       (ctxt : context) : string * (context -> Lexing.lexbuf -> Token.t) =
     Stack.top ctxt.lexers
 
@@ -201,15 +201,15 @@ module Make (Token : Sig.Camlp4Token)
 
   (* a way to return multiple tokens from a single rule *)
   let multiple c toks =
-    (* 
+    (*
        for each token, push a lexer on the stack that does nothing
        except pop itself off and return a token
     *)
     let () = ListLabels.iter (List.rev toks)
                ~f:(fun tok ->
                      push_lexer ("lexer for " ^ Token.to_string tok)
-                       (fun _ _ -> 
-                          let () = pop_lexer c in 
+                       (fun _ _ ->
+                          let () = pop_lexer c in
                             tok) c) in
       snd (next_lexer c) c c.lexbuf
 
@@ -452,7 +452,7 @@ module Make (Token : Sig.Camlp4Token)
                                                         SYMBOL(beginning ^ tok) }
 
   and maybe_quotation_at c = parse
-    | (ident as loc) '<'      
+    | (ident as loc) '<'
       { mk_quotation quotation c "" loc (1 + String.length loc)                 }
     | symbolchar* as tok                                   { SYMBOL("<@" ^ tok) }
 
@@ -526,8 +526,8 @@ module Make (Token : Sig.Camlp4Token)
            a closing tag
            the start of a start tag
        *)
-    | "&amp;"                              { STRING ("&amp;", "&") } 
-    | "&lt;"                               { STRING ("&lt;", "<")  } 
+    | "&amp;"                              { STRING ("&amp;", "&") }
+    | "&lt;"                               { STRING ("&lt;", "<")  }
     | "&gt;"                               { STRING ("&gt;", ">")  }
     | '{'                                  { (* scan the expression, then back here *)
                                              let () = push_lexer "token" token c in
@@ -536,9 +536,9 @@ module Make (Token : Sig.Camlp4Token)
     | "}}"                                 { STRING ("}}", "}") }
     | "}"                                  { err (Illegal_character '}') (loc c) }
     | [^ '{' '}' '<' '&' ]* as cdata       { (* TODO: bump newlines *) STRING (cdata, cdata) }
-    | "</#>"                               { let () = pop_lexer c in 
+    | "</#>"                               { let () = pop_lexer c in
                                                KEYWORD "</#>" }
-    | "</" (lowercase identchar* as x) '>' { let () = pop_lexer c in 
+    | "</" (lowercase identchar* as x) '>' { let () = pop_lexer c in
                                                multiple c [SYMBOL "</";
                                                            LIDENT x;
                                                            SYMBOL ">"] }
@@ -548,7 +548,7 @@ module Make (Token : Sig.Camlp4Token)
     | _ as ch                              { err (Illegal_character ch) (loc c) }
 
   {
-    
+
   let debugging = false
 
   let lexing_store s buff max =
@@ -558,7 +558,7 @@ module Make (Token : Sig.Camlp4Token)
         match Stream.peek s with
         | Some x ->
             Stream.junk s;
-            buff.[n] <- x;
+            Bytes.set buff n x;
             succ n
         | _ -> n
     in

@@ -2,15 +2,15 @@
  * ocamlcgi - Objective Caml library for writing CGIs
  * Copyright (C) 1997 Daniel de Rauglaudre, INRIA
  * Copyright (C) 1998 Jean-Christophe FILLIATRE
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License version 2, as published by the Free Software Foundation.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file LGPL).
  *)
@@ -54,18 +54,18 @@ let raw_decode s =
         match s.[i] with
           | '%' when i + 2 < String.length s ->
               let v = hexa_val s.[i + 1] * 16 + hexa_val s.[i + 2] in
-		s1.[i1] <- Char.chr v; i + 3
-          | '+' -> s1.[i1] <- ' '; succ i
-          | x -> s1.[i1] <- x; succ i
+		          Bytes.set s1 i1 (Char.chr v); i + 3
+          | '+' -> Bytes.set s1 i1 ' '; succ i
+          | x -> Bytes.set s1 i1 x; succ i
       in
 	copy_decode_in s1 i (succ i1)
     else s1
   in
   if need_decode 0 then
     let len = compute_len 0 0 in
-    let s1 = String.create len in
+    let s1 = Bytes.create len in
     copy_decode_in s1 0 0
-  else 
+  else
     s
 
 let decode s =
@@ -78,16 +78,16 @@ let decode s =
       else if s.[String.length s - 1] == ' ' then
         strip_heading_and_trailing_spaces
           (String.sub s 0 (String.length s - 1))
-      else 
+      else
 	s
-    else 
+    else
       s
   in
   strip_heading_and_trailing_spaces rs
 
 (* special characters must be encoded. According to RFC 1738 they are: *)
 
-let special = function 
+let special = function
   | '\000'..'\031' | '\127'..'\255'                      (* non US ASCII *)
   | '<' | '>' | '"' | '#' | '%'                          (* space should be here, but its encoding uses only one char *)
   | '{' | '}' | '|' | '\\' | '^' | '~' | '[' | ']' | '`' (* unsafe *)
@@ -95,9 +95,9 @@ let special = function
       -> true
   | '+' -> true
   | _ -> false
-      
+
 (* '"' *)
-      
+
 let encode s =
   let rec need_code i =
     if i < String.length s then
@@ -116,24 +116,24 @@ let encode s =
     if i < String.length s then
       let i1 =
         match s.[i] with
-          | ' ' -> s1.[i1] <- '+'; succ i1
+          | ' ' -> Bytes.set s1 i1 '+'; succ i1
           | c ->
               if special c then
 		begin
-                  s1.[i1] <- '%';
-                  s1.[i1 + 1] <- hexa_digit (Char.code c / 16);
-                  s1.[i1 + 2] <- hexa_digit (Char.code c mod 16);
+                  Bytes.set s1 i1 '%';
+                  Bytes.set s1 (i1 + 1) (hexa_digit (Char.code c / 16));
+                  Bytes.set s1 (i1+2) (hexa_digit (Char.code c mod 16));
                   i1 + 3
 		end
-              else begin s1.[i1] <- c; succ i1 end
+              else begin Bytes.set  s1 i1 c; succ i1 end
       in
       copy_code_in s1 (succ i) i1
-    else 
+    else
       s1
   in
   if need_code 0 then
-    let len = compute_len 0 0 in copy_code_in (String.create len) 0 0
-  else 
+    let len = compute_len 0 0 in copy_code_in (Bytes.create len) 0 0
+  else
     s
 
 
@@ -164,24 +164,24 @@ let string_starts_with s pref =
 
 let getenv s =
 (*  try*) Sys.getenv s
-(*  with Not_found -> 
+(*  with Not_found ->
     failwith ("Cgi: the environment variable " ^ s ^ " is not set")*)
 
 let parse_args () =
-  (* 
+  (*
      NOTE:
-     
+
      We now check against the prefix of the mime_type rather than the
      whole string. This allows Links to work with Firefox 3 Beta 2,
      for instance, which sends the mime type:
 
        "application/x-www-form-urlencoded; charset=UTF-8"
-     
+
      Presumably this was a bug, as for multipart/form-data below we
      were already checking against the prefix.
   *)
   let req_method = getenv "REQUEST_METHOD" in
-  let s = 
+  let s =
     if req_method = "GET" || req_method = "HEAD" then
       getenv "QUERY_STRING"
     else begin
@@ -189,7 +189,7 @@ let parse_args () =
         if req_method = "POST"
           && string_starts_with mime_type "application/x-www-form-urlencoded" then begin
             let n = int_of_string (getenv "CONTENT_LENGTH") in
-            let buf = String.create n in
+            let buf = Bytes.create n in
               really_input stdin buf 0 n;
               buf
           end else
@@ -201,7 +201,7 @@ let parse_args () =
   let one_assoc s =
     try
       let i = String.index s '=' in
-        String.sub s 0 i, 
+        String.sub s 0 i,
       decode (String.sub s (succ i) (String.length s - i - 1))
     with
       | Not_found -> s,""
@@ -271,7 +271,7 @@ let extract_field chunk =
 (* Same, for a list of chunks *)
 
 let rec extract_fields accu = function
-  | [] -> 
+  | [] ->
       accu
   | chunk :: rem ->
       extract_fields
@@ -295,14 +295,14 @@ let parse_multipart_args () =
   (* Weird code organization intended to help GC reclaim early.
      Equivalent, clearer code:
        let data_len = int_of_string (getenv "CONTENT_LENGTH") in
-       let data = String.create data_len in
+       let data = Bytes.create data_len in
        really_input stdin data 0 n;
        let chunks = Str.split (Str.regexp_string ("--" ^ boundary)) data in
        extract_fields [] chunks *)
   extract_fields []
     (Str.split (Str.regexp_string ("--" ^ boundary))
       (let data_len = int_of_string (getenv "CONTENT_LENGTH") in
-       let data = String.create data_len in
+       let data = Bytes.create data_len in
        really_input stdin data 0 data_len; data))
 
 (* PATH_INFO *)
@@ -312,13 +312,13 @@ let path_info =
     match split '/' (Sys.getenv "PATH_INFO") with
       | _ :: t -> t
       | [] -> []
-  with Not_found -> 
+  with Not_found ->
     []
 
 let nth_path_info index =
   try
     List.nth path_info index
-  with Failure "nth" -> 
+  with Failure "nth" ->
     ""
 
 (* content-type *)
